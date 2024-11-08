@@ -1,0 +1,8 @@
+excel_files/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+*.log

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel File Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .search-container {
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .search-keywords {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .keyword-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .keyword-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .add-keyword-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .add-keyword-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .remove-keyword-btn {
+            padding: 12px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .remove-keyword-btn:hover {
+            background-color: #c82333;
+        }
+
+        .search-button {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .search-button:hover {
+            background-color: #0056b3;
+        }
+
+        .refresh-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .refresh-button:hover {
+            background-color: #218838;
+        }
+
+        .files-list {
+            margin-bottom: 24px;
+            background-color: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .files-list h3 {
+            margin-bottom: 12px;
+            color: #495057;
+            font-size: 18px;
+        }
+
+        #filesList {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        #filesList li {
+            background-color: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .result-meta {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .result-meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .result-meta-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-meta-value {
+            font-size: 16px;
+            color: #212529;
+            font-weight: 500;
+        }
+
+        .result-table-container {
+            overflow-x: auto;
+            margin-top: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            background: white;
+        }
+
+        .result-table th,
+        .result-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .result-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        .result-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .result-meta {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .result-table th,
+            .result-table td {
+                padding: 8px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel File Viewer</h1>
+
+        <div class="search-container">
+            <div class="search-keywords" id="searchKeywords">
+                <div class="keyword-row">
+                    <input type="text" class="keyword-input" placeholder="Enter search keyword...">
+                    <button class="remove-keyword-btn" onclick="removeKeyword(this)">×</button>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="add-keyword-btn" onclick="addKeyword()">Add Keyword</button>
+                <button class="search-button" onclick="search()">Search</button>
+                <button class="refresh-button" onclick="refreshFiles()">Refresh Files</button>
+            </div>
+        </div>
+
+        <div class="files-list">
+            <h3>Loaded Files</h3>
+            <ul id="filesList">
+            {% for file in files %}
+                <li>{{ file }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+
+        <div id="loading" class="loading"></div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function addKeyword() {
+            const keywordsContainer = document.getElementById('searchKeywords');
+            const newRow = document.createElement('div');
+            newRow.className = 'keyword-row';
+            newRow.innerHTML = `
+                <input type="text" class="keyword-input" placeholder="Enter search keyword...">
+                <button class="remove-keyword-btn" onclick="removeKeyword(this)">×</button>
+            `;
+            keywordsContainer.appendChild(newRow);
+        }
+
+        function removeKeyword(button) {
+            const keywordsContainer = document.getElementById('searchKeywords');
+            if (keywordsContainer.children.length > 1) {
+                button.parentElement.remove();
+            } else {
+                showToast('At least one search keyword is required');
+            }
+        }
+
+        function getKeywords() {
+            const inputs = document.querySelectorAll('.keyword-input');
+            return Array.from(inputs)
+                .map(input => input.value.trim())
+                .filter(value => value !== '');
+        }
+
+        function createTableFromData(results) {
+            if (!results.length) return '<div class="no-results">No results found</div>';
+
+            let html = '';
+
+            const groupedResults = {};
+            results.forEach(result => {
+                const key = `${result.file}|${result.sheet}`;
+                if (!groupedResults[key]) {
+                    const originalColumns = Object.keys(result.data);
+                    groupedResults[key] = {
+                        file: result.file,
+                        sheet: result.sheet,
+                        rows: [],
+                        columnOrder: [...originalColumns].reverse()
+                    };
+                }
+                groupedResults[key].rows.push(result.data);
+            });
+
+            Object.values(groupedResults).forEach(group => {
+                html += `
+                    <div class="result-item">
+                        <div class="result-meta">
+                            <div class="result-meta-item">
+                                <span class="result-meta-label">File Name</span>
+                                <span class="result-meta-value">${group.file}</span>
+                            </div>
+                            <div class="result-meta-item">
+                                <span class="result-meta-label">Sheet Name</span>
+                                <span class="result-meta-value">${group.sheet}</span>
+                            </div>
+                            <div class="result-meta-item">
+                                <span class="result-meta-label">Matches</span>
+                                <span class="result-meta-value">${group.rows.length} rows</span>
+                            </div>
+                        </div>
+                        <div class="result-table-container">
+                            <table class="result-table">
+                                <thead>
+                                    <tr>
+                                        ${group.columnOrder
+                                            .map(key => `<th>${key}</th>`)
+                                            .join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${group.rows.map(row => `
+                                        <tr>
+                                            ${group.columnOrder
+                                                .map(key => `<td>${row[key] || ''}</td>`)
+                                                .join('')}
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function search() {
+            const keywords = getKeywords();
+            if (keywords.length === 0) {
+                showToast('Please enter at least one search keyword');
+                return;
+            }
+
+            showLoading();
+            fetch(`/search?${keywords.map(k => `query=${encodeURIComponent(k)}`).join('&')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsDiv = document.getElementById('results');
+                    resultsDiv.innerHTML = createTableFromData(data);
+                })
+                .catch(error => {
+                    showToast('Error performing search');
+                    console.error('Search error:', error);
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        function refreshFiles() {
+            showLoading();
+            fetch('/refresh')
+                .then(response => response.json())
+                .then(data => {
+                    const filesList = document.getElementById('filesList');
+                    filesList.innerHTML = data.files.map(file => `<li>${file}</li>`).join('');
+                    showToast('Files refreshed successfully');
+                })
+                .catch(error => {
+                    showToast('Error refreshing files');
+                    console.error('Refresh error:', error);
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.classList.contains('keyword-input')) {
+                search();
+            }
+        });
+
+        window.addEventListener('online', () => showToast('Connection restored'));
+        window.addEventListener('offline', () => showToast('Connection lost'));
+    </script>
+</body>
+</html>

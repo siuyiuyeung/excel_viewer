@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  excel-viewer:
+    container_name: excel-viewer
+    build: .
+    ports:
+      - "80:5000"
+    volumes:
+      - ./excel_files:/app/excel_files
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+    restart: unless-stopped
