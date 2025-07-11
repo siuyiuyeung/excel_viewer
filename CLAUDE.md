@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a web-based Excel file viewer and search application built with Flask that allows users to search across multiple Excel files using multiple keywords with AND logic.
+This is a web-based Excel file viewer and search application built with Flask that allows users to search across multiple Excel files using multiple keywords with AND logic. The application includes password authentication with 24-hour session timeout for security.
 
 ## Key Commands
 
@@ -30,15 +30,23 @@ Place Excel files (.xlsx or .xls) in the `excel_files` directory. The applicatio
 
 ### Core Components
 
-1. **app/app.py** - Flask application with three main routes:
-   - `/` - Main page serving the HTML interface
-   - `/search` - API endpoint accepting multiple `query` parameters for AND-based search
-   - `/refresh` - Reloads all Excel files from the directory
+1. **app/app.py** - Flask application with main routes:
+   - `/login` - Authentication page (GET/POST)
+   - `/logout` - Clears session and redirects to login
+   - `/` - Main page serving the HTML interface (login required)
+   - `/search` - API endpoint accepting multiple `query` parameters for AND-based search (login required)
+   - `/refresh` - Reloads all Excel files from the directory (login required)
 
 2. **app/templates/index.html** - Single-page web interface with:
    - Dynamic keyword input fields (add/remove functionality)
    - Search results displayed in a table format grouped by file and sheet
    - Refresh button to reload Excel files
+   - Logout button in header
+
+3. **app/templates/login.html** - Authentication page with:
+   - Password input field
+   - Session timeout information (24 hours)
+   - Error message display
 
 ### Data Flow
 
@@ -54,6 +62,9 @@ Place Excel files (.xlsx or .xls) in the `excel_files` directory. The applicatio
 - Search is case-insensitive and works across all columns
 - The application mounts `./excel_files` as a volume for persistence across container restarts
 - Flask runs in debug mode with auto-reload enabled
+- Password is configurable via EXCEL_VIEWER_PASSWORD environment variable
+- Sessions expire after 24 hours of inactivity
+- Secret key is generated dynamically for session security
 
 ## Common Tasks
 

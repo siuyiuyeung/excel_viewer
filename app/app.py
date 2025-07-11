@@ -1,12 +1,29 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import pandas as pd
 import os
 from pathlib import Path
+from datetime import datetime, timedelta
+from functools import wraps
+import secrets
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = secrets.token_hex(32)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Set the password from environment variable or use default
+PASSWORD = os.environ.get('EXCEL_VIEWER_PASSWORD', 'excel_viewer_2024')
 
 # Global dictionary to store DataFrames
 excel_data = {}
+
+def login_required(f):
+    """Decorator to check if user is logged in"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def load_excel_files(directory="excel_files"):
     """Load all Excel files from the specified directory"""
@@ -23,12 +40,33 @@ def load_excel_files(directory="excel_files"):
             except Exception as e:
                 print(f"Error loading {file}: {str(e)}")
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Handle login"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == PASSWORD:
+            session.permanent = True
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error='Invalid password')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Handle logout"""
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     """Render the main page"""
     return render_template('index.html', files=list(excel_data.keys()))
 
 @app.route('/search')
+@login_required
 def search():
     """Search across all Excel files and sheets with multiple keywords"""
     queries = request.args.getlist('query')  # Get all query parameters
@@ -72,6 +110,7 @@ def search():
 
 
 @app.route('/refresh')
+@login_required
 def refresh_files():
     """Reload all Excel files"""
     load_excel_files()

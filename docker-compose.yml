@@ -11,4 +11,5 @@ services:
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
+      - EXCEL_VIEWER_PASSWORD=excel_viewer_2024
     restart: unless-stopped
